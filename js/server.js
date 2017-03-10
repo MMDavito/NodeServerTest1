@@ -6,13 +6,43 @@ const express = require('express');
 const exphbs = require('express-handlebars');
 const path = require('path');
 const pg = require('pg');
-//table is named "person"
+//database-table is named "person"
 const conString = 'postgres://postgres:1234@localhost/node_users';
+const bodyParser = require('body-parser');
 
 const app = express();
+app.use(bodyParser.urlencoded({extended: true}));
+app.use(bodyParser.json());
+console.log("before static");
+app.use("/js",express.static(path.join(__dirname,'public')));
+console.log("after static");
 
+
+app.engine('.html', exphbs({
+    defaultLayout: 'main',
+    extname: '.html',
+    layoutsDir: path.join(__dirname, 'views/layouts')
+}));
+
+app.set('view engine', 'html');
+app.set('views', path.join(__dirname, 'views'));
+
+app.get('/', (request, response) => {
+    response.render('home', {
+        name: 'John'
+    });
+});
+app.get("/register", (req, res) => {
+    res.render('create_person');
+});
+
+//the API-part
 app.post('/user', function (req, res, next) {
+    console.log(req);
+    console.log("body is here " + req.body);
     const user = req.body;
+    console.log("hej1");
+    console.log(user.name);
 
     pg.connect(conString, function (err, client, done) {
         if (err) {
@@ -20,16 +50,18 @@ app.post('/user', function (req, res, next) {
             //will create a error handler #yayy
             return next(err);
         }
-        client.query("INSERT INTO person(name, age) VALUES ($1, $2);"),
+        client.query("INSERT INTO person(name, age) VALUES ($1, $2);",
                 [user.name, user.age], function (err, result) {
+            console.log("here i´m bloody done");
             done();//Signal pg == conn.close();
             if (err) {
+                console.log("here is some blody error " + err);
                 //pass to errorhandler
                 return next(err);
             }
-            ;
-            res.send(200);
-        };
+            console.log("here i send a response ");
+            res.sendStatus(200);
+        });
     });
 });
 app.get('/users', function (req, res, next) {
@@ -52,20 +84,6 @@ app.get('/users', function (req, res, next) {
     });
 });
 
-app.engine('.html', exphbs({
-    defaultLayout: 'main',
-    extname: '.html',
-    layoutsDir: path.join(__dirname, 'views/layouts')
-}));
-
-app.set('view engine', 'html');
-app.set('views', path.join(__dirname, 'views'));
-
-app.get('/', (request, response) => {
-    response.render('home', {
-        name: 'John'
-    });
-});
 
 app.listen(port);
 
