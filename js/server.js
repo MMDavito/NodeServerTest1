@@ -14,7 +14,7 @@ const app = express();
 app.use(bodyParser.urlencoded({extended: true}));
 app.use(bodyParser.json());
 console.log("before static");
-app.use("/js",express.static(path.join(__dirname,'public')));
+app.use("/assets", express.static(path.join(__dirname, 'public')));
 console.log("after static");
 
 
@@ -83,45 +83,64 @@ app.get('/users', function (req, res, next) {
         });
     });
 });
+app.get("/user/:tagId", function (req, res, next) {
 
+    console.log("You try to get a user?");
+    var id = Number(req.params.tagId);
+    console.log(id);
+    if (!isNaN(id)) {
+        pg.connect(conString, function (err, client, done) {
+            if (err) {
+                //pass to errorhandler
+                return next(err);
+            }
+
+            client.query("SELECT * FROM person WHERE id =$1;", [id], function (err, result) {
+                done();
+
+                if (err) {
+                    //pass to errorhandler
+                    return next(err);
+                }
+                var data = result.rows;
+                if (data[0] === undefined) {
+                    console.log("bloddy hell");
+                    res.sendStatus(404);
+                } else {
+                    console.log("HURRAYY " + data[0]);
+                    res.json(data);
+                }
+            });
+        });
+    } else {
+        res.sendStatus(400);
+    }
+});
+app.delete("/user/:tagId", function (req, res, next) {
+
+    console.log("You try to get a user?");
+    var id = Number(req.params.tagId);
+    console.log(id);
+    if (!isNaN(id)) {
+        pg.connect(conString, function (err, client, done) {
+            if (err) {
+                //pass to errorhandler
+                return next(err);
+            }
+
+            client.query("DELETE FROM person WHERE id =$1;", [id], function (err, result) {
+                done();
+
+                if (err) {
+                    //pass to errorhandler
+                    return next(err);
+                }
+                res.sendStatus(200);
+            });
+        });
+    } else {
+        res.sendStatus(400);
+    }
+});
 
 app.listen(port);
-
-
-
-//const port = 3000;
-//const express = require('express');
-//const app = express();
-//
-//app.use((request, response, next) => {
-//    console.log(request.headers);
-//    next();
-//});
-//
-//app.use((request, response, next) => {
-//    request.chance = Math.random();
-//    next();
-//});
-//app.get('/', (request, response) => {
-//    response.json({
-//        chance: request.chance
-//    });
-//});
-//app.use((err, request, response, next) => {
-//    console.log(err);
-//    response.status(500).send("Something broke");
-//});
-//app.listen(port);
-//
-//
-//
-//
-//http://www.nodebeginner.org/
-////const http = require('http');
-//const port = 8888;
-//
-//http.createServer(function(request, response){
-//    response.writeHead(200, {"Content-Type": "text/plain"});
-//    response.write("Hello wärldden");
-//    response.end();
-//}).listen(port);
